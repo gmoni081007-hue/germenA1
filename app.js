@@ -890,39 +890,172 @@ function saveS2() {
 // ════════════════════════════════════════════════
 // SPRECHEN 2 – Answer questions
 // ════════════════════════════════════════════════
-function renderSp2() {
-  const key = "sp2";
-  const s = qState[key];
-  const data = D.sprechen2;
-  const q = data[s.idx];
-  const revealed = (s.answered[s.idx] || {}).revealed;
+const sp2ThemaColors = {
+  "Essen & Trinken": "#e65c00",
+  Familie: "#1a6bb5",
+  Wohnen: "#2e7d32",
+  "Freizeit & Hobby": "#7b1fa2",
+  "Arbeit & Beruf": "#c62828",
+  "Schule & Lernen": "#00838f",
+  "Reisen & Verkehr": "#4527a0",
+  Gesundheit: "#558b2f",
+  Einkaufen: "#bf360c",
+  "Sprachen & Länder": "#1565c0",
+  Tagesablauf: "#795548",
+  "Wetter & Jahreszeiten": "#0277bd",
+  "Feste & Feiertage": "#ad1457",
+  "Körper & Aussehen": "#6a1b9a",
+  "Kleidung & Mode": "#e91e63",
+  "Technik & Medien": "#37474f",
+  "Natur & Umwelt": "#388e3c",
+  "Stadt & Orientierung": "#f57f17",
+  "Zahlen & Uhrzeit": "#0288d1",
+  "Gefühle & Meinungen": "#d81b60",
+};
+const sp2State = { thema: "Alle", search: "", set: "all", cards: {} };
+const sp2Mid = Math.ceil(D.sprechen2.length / 2);
 
-  document.getElementById("sp2-layout").innerHTML = `
-    <div class="quiz-meta">
-      <h2>Sprechen Teil 2</h2>
-    </div>
-    <div class="q-progress"><div class="q-progress-bar" style="width:${((s.idx + 1) / data.length) * 100}%"></div></div>
-    <div class="spr-card">
-      <div class="spr-topic">${escHtml(q.thema || "")}</div>
-      <div class="spr-keyword">${escHtml(q.keyword || "")}</div>
-      ${
-        !revealed
-          ? `<button class="reveal-btn" onclick="revealSp2()">Show Question &amp; Answer</button>`
-          : `
-        <div class="spr-question" style="margin-top:12px">${escHtml(q.question)}</div>
-        ${q.hint ? `<div class="spr-hint">💡 ${escHtml(q.hint)}</div>` : ""}
-        <div class="answer-reveal visible">${escHtml(q.answer || "")}</div>
-        <button class="reveal-btn" style="margin-top:10px;background:#8a7358" onclick="revealSp2()">Hide</button>
-      `
-      }
-    </div>
-    ${quizNavHtml(key, s.idx, data.length)}`;
+function sp2Color(thema) {
+  return sp2ThemaColors[thema] || "var(--accent)";
 }
-function revealSp2() {
-  const s = qState["sp2"];
-  if (!s.answered[s.idx]) s.answered[s.idx] = {};
-  s.answered[s.idx].revealed = !s.answered[s.idx].revealed;
-  renderSp2();
+function sp2Themen() {
+  return ["Alle", ...new Set(D.sprechen2.map((c) => c.thema))];
+}
+function sp2Filtered() {
+  const q = sp2State.search.trim().toLowerCase();
+  return D.sprechen2.filter((c) => {
+    const setMatch =
+      sp2State.set === "all" ||
+      (sp2State.set === "set1" && c.id <= sp2Mid) ||
+      (sp2State.set === "set2" && c.id > sp2Mid);
+    const themeMatch = sp2State.thema === "Alle" || c.thema === sp2State.thema;
+    const search =
+      q === "" ||
+      (c.keyword || "").toLowerCase().includes(q) ||
+      (c.thema || "").toLowerCase().includes(q) ||
+      (c.question || "").toLowerCase().includes(q);
+    return setMatch && themeMatch && search;
+  });
+}
+function renderSp2() {
+  const total = D.sprechen2.length;
+  document.getElementById("sp2-layout").innerHTML = `
+    <div class="sp2-controls">
+      <button class="sp2-set-btn" data-set="all" onclick="sp2SetShow('all')">📚 Alle ${total} Karten</button>
+      <button class="sp2-set-btn" data-set="set1" onclick="sp2SetShow('set1')">🟡 Set 1: 1–${sp2Mid}</button>
+      <button class="sp2-set-btn" data-set="set2" onclick="sp2SetShow('set2')">🟢 Set 2: ${sp2Mid + 1}–${total}</button>
+    </div>
+    <div class="sp2-search">
+      <input type="text" id="sp2-search-input" placeholder="🔍 Stichwort, Thema oder Frage suchen…"
+        autocomplete="off" oninput="sp2State.search=this.value;sp2RenderCards()" />
+    </div>
+    <div class="sp2-topics" id="sp2-topics"></div>
+    <div class="sp2-count"><span id="sp2-count">0</span> Karten angezeigt</div>
+    <div class="sp2-grid" id="sp2-grid"></div>
+    <div class="sp2-no-results" id="sp2-no-results" style="display:none">
+      Keine Karten gefunden. Probiere ein anderes Stichwort oder Thema.
+    </div>`;
+  const input = document.getElementById("sp2-search-input");
+  input.value = sp2State.search;
+  sp2RenderTopics();
+  sp2RenderSetButtons();
+  sp2RenderCards();
+}
+function sp2RenderTopics() {
+  const wrap = document.getElementById("sp2-topics");
+  wrap.innerHTML = sp2Themen()
+    .map((t) => {
+      const active = t === sp2State.thema;
+      const color = sp2Color(t);
+      const style = active
+        ? `background:${t === "Alle" ? "var(--dark)" : color};border-color:${
+            t === "Alle" ? "var(--dark)" : color
+          }`
+        : "";
+      return `<button class="sp2-topic-btn${active ? " active" : ""}" style="${style}"
+        onclick="sp2SetThema('${t.replace(/'/g, "\\'")}')">${escHtml(t === "Alle" ? "📚 Alle" : t)}</button>`;
+    })
+    .join("");
+}
+function sp2RenderSetButtons() {
+  document.querySelectorAll("#sp2-layout .sp2-set-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.set === sp2State.set);
+  });
+}
+function sp2RenderCards() {
+  const total = D.sprechen2.length;
+  const filtered = sp2Filtered();
+  document.getElementById("sp2-count").textContent = filtered.length;
+  document.getElementById("sp2-no-results").style.display = filtered.length ? "none" : "block";
+  document.getElementById("sp2-grid").innerHTML = filtered
+    .map((c) => {
+      const st = sp2State.cards[c.id] || { flipped: false, hint: false };
+      const color = sp2Color(c.thema);
+      const themeStyle = st.flipped ? `background:${color}` : "";
+      return `
+      <article class="sp2-card${st.flipped ? " flipped" : ""}" onclick="sp2Flip(${c.id})">
+        <div class="sp2-card-top"><span>Modellsatz</span><span>Kandidatenblätter</span></div>
+        <div class="sp2-card-theme" style="${themeStyle}"><span>Thema: ${escHtml(c.thema || "")}</span></div>
+        <div class="sp2-card-keyword">${escHtml(c.keyword || "")}</div>
+        <div class="sp2-card-footer"><span>#${c.id} / ${total}</span><span>${st.flipped ? "" : "Tippen →"}</span></div>
+        <div class="sp2-answer${st.flipped ? " visible" : ""}">
+          <div class="sp2-section">
+            <span class="sp2-label">❓ Frage</span>
+            <p class="sp2-question-text">${escHtml(c.question || "")}</p>
+            <button class="sp2-speak-btn" onclick="event.stopPropagation();sp2Speak(${c.id},'question')">🔊 Frage hören</button>
+          </div>
+          <div class="sp2-section">
+            <span class="sp2-label">✅ Antwort</span>
+            <p class="sp2-answer-text">${escHtml(c.answer || "")}</p>
+            <button class="sp2-speak-btn" onclick="event.stopPropagation();sp2Speak(${c.id},'answer')">🔊 Antwort hören</button>
+          </div>
+          ${
+            c.hint
+              ? `<div class="sp2-section">
+            <button class="sp2-hint-btn" onclick="event.stopPropagation();sp2Hint(${c.id})">${
+              st.hint ? "▲ Grammatik ausblenden" : "▼ 💡 Grammatik-Tipp"
+            }</button>
+            <div class="sp2-hint-panel" style="display:${st.hint ? "block" : "none"}">${escHtml(c.hint)}</div>
+          </div>`
+              : ""
+          }
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+function sp2Flip(id) {
+  const st = sp2State.cards[id] || { flipped: false, hint: false };
+  sp2State.cards[id] = { ...st, flipped: !st.flipped };
+  sp2RenderCards();
+}
+function sp2Hint(id) {
+  const st = sp2State.cards[id] || { flipped: true, hint: false };
+  sp2State.cards[id] = { ...st, hint: !st.hint };
+  sp2RenderCards();
+}
+function sp2SetThema(t) {
+  sp2State.thema = t;
+  sp2RenderTopics();
+  sp2RenderCards();
+}
+function sp2SetShow(set) {
+  sp2State.set = set;
+  sp2RenderSetButtons();
+  sp2RenderCards();
+}
+function sp2Speak(id, field) {
+  const card = D.sprechen2.find((c) => c.id === id);
+  if (!card) return;
+  const text = field === "answer" ? card.answer : card.question;
+  if (!text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+  u.rate = 0.85;
+  const deVoice = window.speechSynthesis.getVoices().find((v) => v.lang && v.lang.startsWith("de"));
+  if (deVoice) u.voice = deVoice;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
 }
 
 // ════════════════════════════════════════════════
