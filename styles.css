@@ -399,7 +399,6 @@ body {
 }
 .word-list {
   width: 100%;
-  max-width: 480px;
   margin-top: 16px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -414,20 +413,37 @@ body {
   color: var(--muted);
   font-weight: 600;
 }
+#fc-word-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 12px 14px;
+}
 .word-item {
   display: flex;
-  justify-content: space-between;
-  padding: 8px 14px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  padding: 12px 10px;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s;
-  border-top: 1px solid var(--border);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
 }
 .word-item:hover {
   background: #f0ebe2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 .word-item.active {
   background: var(--nav-active);
+  border-color: var(--accent);
 }
 .word-term {
   font-weight: 600;
