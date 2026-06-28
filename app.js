@@ -380,6 +380,7 @@ function renderSection(key) {
 // AUDIO TTS SYSTEM
 // ════════════════════════════════════════════════
 const audioState = {};
+let audioPaused = false;
 
 function getAudioState(key) {
   if (!audioState[key]) audioState[key] = {};
