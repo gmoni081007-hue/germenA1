@@ -13,6 +13,7 @@ let fcFlipped = false;
 let fcCards = [];
 let fcFilter = "";
 
+
 // quiz states (index + score per section)
 const qState = {};
 ["h1", "h2", "h3", "l1", "l2", "l3", "s1", "s2", "sp2", "sp3"].forEach((k) => {
@@ -411,13 +412,7 @@ const femaleVoice =
     voices.find(v => v.name.includes("Katja")) ||
     voices.find(v => v.name.includes("Hedda")) ||
     voices.find(v => v.lang.startsWith("de"));
-  if (isKunde) {
-    utter.voice = maleVoice;
-}
-
-if (isVerkaeuferin) {
-    utter.voice = femaleVoice;
-}
+ 
 
 const lines = text.split(/(?=Kunde:|Verkäuferin:)/);
 let index = 0;
@@ -438,27 +433,22 @@ function speakNext() {
       .replace("Verkäuferin:", "")
       .trim();
     const utter = new SpeechSynthesisUtterance(cleanText);
-   if (isKunde) {
-    utter.pitch = 0.4;
+  const isKunde = line.startsWith("Kunde:");
+const isVerkaeuferin = line.startsWith("Verkäuferin:");
+
+if (isKunde) {
+    utter.voice = maleVoice;
+    utter.pitch = 0.2;
     utter.rate = 0.75;
     utter.volume = 1;
-}
-
-if (isVerkaeuferin) {
-    utter.pitch = 1.9;
-    utter.rate = 1.15;
+} else if (isVerkaeuferin) {
+    utter.voice = femaleVoice;
+    utter.pitch = 1.8;
+    utter.rate = 1.1;
     utter.volume = 1;
+} else {
+    utter.voice = maleVoice || femaleVoice;
 }
-    utter.lang = "de-DE";
-
-   if (isKunde) {
-    utter.voice = deVoice;
-}
-
-if (isVerkaeuferin) {
-    utter.voice = deVoice;
-}
-
     utter.onend = () => {
         index++;
         setTimeout(speakNext, 250);
@@ -501,16 +491,23 @@ function audioPlayerHtml(key, maxPlays) {
 
   return `<div class="audio-player">
     <div class="audio-controls">
-      <button class="play-btn" onclick="playTTS('${key}', ${maxPlays})" 
-      <button class="play-btn"
-    onclick="togglePause()"
-    ${!st.playing ? "disabled" : ""}>
-    ${audioPaused ? "▶ Resume" : "⏸ Pause"}
-</button>
-${canPlay ? "" : "disabled"}>${btnLabel}</button>
-      <span class="play-count">${playsLabel}</span>
-      <span class="audio-status">${statusText}</span>
-    </div>
+    <button
+        class="play-btn"
+        onclick="playTTS('${key}', ${maxPlays})"
+        ${canPlay ? "" : "disabled"}>
+        ${btnLabel}
+    </button>
+
+    <button
+        class="play-btn"
+        onclick="togglePause()"
+        ${!st.playing ? "disabled" : ""}>
+        ${audioPaused ? "▶ Resume" : "⏸ Pause"}
+    </button>
+
+    <span class="play-count">${playsLabel}</span>
+    <span class="audio-status">${statusText}</span>
+</div>
   </div>`;
 }
 
