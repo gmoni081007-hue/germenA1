@@ -445,7 +445,7 @@ utter.volume = 1;
 } else if (isVerkaeuferin) {
     utter.voice = femaleVoice;
 utter.pitch = 1.0;
-utter.rate = 0.95;
+utter.rate = 1.0;
 utter.volume = 1;
 } else {
     utter.voice = maleVoice || femaleVoice;
