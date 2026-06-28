@@ -795,9 +795,6 @@ function renderS1() {
   const s = qState[key];
   const data = D.schreiben1;
   const q = data[s.idx];
-  const blankFields = q.fields.filter((f) => f.blank);
-  const filledFields = q.fields.filter((f) => !f.blank);
-
   const fieldHtml = q.fields
     .map((f, fi) => {
       if (!f.blank) {
@@ -806,39 +803,99 @@ function renderS1() {
         <div class="field-value">${escHtml(f.value)}</div>
       </div>`;
       }
-      const revealed = (s.answered[s.idx] || {})[fi + "_revealed"];
-      if (revealed) {
-        return `<div class="form-field">
-        <div class="field-label">${escHtml(f.label)}</div>
-        <div class="field-value" style="color:#4a8a4a;font-weight:600">✓ ${escHtml(f.value || "(see scenario)")}</div>
-      </div>`;
-      }
+
+      const fieldState = (s.answered[s.idx] && s.answered[s.idx][fi]) || {};
+      const userVal = fieldState.user || "";
+      const statusCls = fieldState.status === "correct" ? "correct" : fieldState.status === "incorrect" ? "incorrect" : "";
+
       return `<div class="form-field">
-      <div class="field-label">${escHtml(f.label)}</div>
-      <div class="field-value" style="color:#c0a868;letter-spacing:.15em">_ _ _ _ _</div>
-      <button class="check-field-btn" onclick="showS1Answer(${fi})">Show Answer</button>
-    </div>`;
+        <div class="field-label">${escHtml(f.label)}</div>
+        <input
+          class="field-input ${statusCls}"
+          id="s1-input-${s.idx}-${fi}"
+          value="${escHtml(userVal)}"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          oninput="saveS1Input(${s.idx}, ${fi}, this.value)"
+        />
+      </div>`;
     })
     .join("");
+
+  const resultText = s.answered[s.idx] && s.answered[s.idx].result ? `<div class="check-result">${escHtml(s.answered[s.idx].result)}</div>` : "";
 
   document.getElementById("s1-layout").innerHTML = `
     <div class="quiz-meta">
       <h2>Schreiben Teil 1</h2>
-      <div class="quiz-controls">${quizScoreHtml(key)}</div>
     </div>
     <div class="q-progress"><div class="q-progress-bar" style="width:${((s.idx + 1) / data.length) * 100}%"></div></div>
     <div class="scenario-box"><strong>Scenario:</strong><br>${escHtml(q.context)}</div>
     <div class="form-card">
       <h3>${escHtml(q.form_title || "Registration Form")}</h3>
       ${fieldHtml}
+      <div class="action-row">
+        <button class="q-btn primary" onclick="checkS1Answers()">Check Answers</button>
+        <button class="q-btn" onclick="showS1Solution()">Show Solution</button>
+        <button class="q-btn" onclick="resetS1Fields()">Reset</button>
+      </div>
+      ${resultText}
     </div>
     ${quizNavHtml(key, s.idx, data.length)}`;
 }
-function showS1Answer(fi) {
-  const s = qState["s1"];
+
+function checkS1Answers() {
+  const key = "s1";
+  const s = qState[key];
+  const data = D.schreiben1;
+  const q = data[s.idx];
   if (!s.answered[s.idx]) s.answered[s.idx] = {};
-  s.answered[s.idx][fi + "_revealed"] = true;
+
+  let correctCount = 0;
+  let total = 0;
+
+  q.fields.forEach((f, fi) => {
+    if (!f.blank) return;
+    total++;
+    const correctAnswer = q.answers?.[fi] || "";
+    const userVal = (s.answered[s.idx][fi]?.user || "").trim();
+    const isCorrect = checkAnswerMatch(userVal, correctAnswer);
+    s.answered[s.idx][fi] = { user: userVal, status: isCorrect ? "correct" : "incorrect" };
+    if (isCorrect) correctCount++;
+  });
+
+  s.answered[s.idx].result = `${correctCount} out of ${total} correct`;
   renderS1();
+}
+
+function showS1Solution() {
+  const key = "s1";
+  const s = qState[key];
+  const data = D.schreiben1;
+  const q = data[s.idx];
+  if (!s.answered[s.idx]) s.answered[s.idx] = {};
+
+  Object.entries(q.answers || {}).forEach(([fi, answer]) => {
+    s.answered[s.idx][fi] = { user: answer, status: "correct" };
+  });
+
+  s.answered[s.idx].result = "Solution shown";
+  renderS1();
+}
+
+function resetS1Fields() {
+  const s = qState["s1"];
+  if (s.answered[s.idx]) delete s.answered[s.idx];
+  renderS1();
+}
+
+function saveS1Input(qIdx, fi, val) {
+  const s = qState["s1"];
+  if (!s.answered[qIdx]) s.answered[qIdx] = {};
+  if (!s.answered[qIdx][fi]) s.answered[qIdx][fi] = {};
+  s.answered[qIdx][fi].user = val;
+  delete s.answered[qIdx][fi].status;
+  delete s.answered[qIdx].result;
 }
 
 // ════════════════════════════════════════════════
@@ -849,42 +906,20 @@ function renderS2() {
   const s = qState[key];
   const data = D.schreiben2;
   const q = data[s.idx];
-  const modelVisible = (s.answered[s.idx] || {}).modelVisible;
   const pts = (q.required_points || []).map((p) => `<li>${escHtml(p)}</li>`).join("");
-  const modelText = [q.salutation, q.model_answer, q.closing].filter(Boolean).join("\n\n");
 
   document.getElementById("s2-layout").innerHTML = `
     <div class="quiz-meta">
       <h2>Schreiben Teil 2</h2>
     </div>
     <div class="q-progress"><div class="q-progress-bar" style="width:${((s.idx + 1) / data.length) * 100}%"></div></div>
-    <div class="email-card">
+    <div class="email-card compact">
       <h3>${escHtml(q.topic || "")}</h3>
       <div class="email-scenario">${escHtml(q.scenario || "")}</div>
-      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Required points:</div>
+      <div class="required-label">Required points:</div>
       <ul class="points-list">${pts}</ul>
-      <textarea class="email-textarea" id="s2-ta-${s.idx}" placeholder="Write your email here…" oninput="saveS2()">${(s.answered[s.idx] || {}).text || ""}</textarea>
-      <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
-        <button class="show-model-btn" onclick="toggleS2Model()">
-          ${modelVisible ? "▲ Hide model answer" : "▼ Show model answer"}
-        </button>
-        <button class="q-btn" onclick="saveS2()" style="padding:5px 12px;font-size:12px">💾 Save</button>
-      </div>
-      <div class="model-answer ${modelVisible ? "visible" : ""}" style="white-space:pre-line">${escHtml(modelText)}</div>
     </div>
     ${quizNavHtml(key, s.idx, data.length)}`;
-}
-function toggleS2Model() {
-  const s = qState["s2"];
-  if (!s.answered[s.idx]) s.answered[s.idx] = {};
-  s.answered[s.idx].modelVisible = !s.answered[s.idx].modelVisible;
-  renderS2();
-}
-function saveS2() {
-  const s = qState["s2"];
-  if (!s.answered[s.idx]) s.answered[s.idx] = {};
-  const ta = document.getElementById("s2-ta-" + s.idx);
-  if (ta) s.answered[s.idx].text = ta.value;
 }
 
 // ════════════════════════════════════════════════
