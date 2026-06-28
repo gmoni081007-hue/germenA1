@@ -414,11 +414,32 @@ function speakNext() {
     }
 
     const line = lines[index].trim();
+    const isKunde = line.startsWith("Kunde:");
+    const isVerkaeuferin = line.startsWith("Verkäuferin:");
 
-    const utter = new SpeechSynthesisUtterance(line);
+    const cleanText = line
+      .replace("Kunde:", "")
+      .replace("Verkäuferin:", "")
+      .trim();
+    const utter = new SpeechSynthesisUtterance(cleanText);
+    if (isKunde) {
+    utter.pitch = 0.8;
+    utter.rate = 0.88;
+}
+
+if (isVerkaeuferin) {
+    utter.pitch = 1.3;
+    utter.rate = 1.0;
+}
     utter.lang = "de-DE";
 
-    if (deVoice) utter.voice = deVoice;
+   if (isKunde) {
+    utter.voice = deVoice;
+}
+
+if (isVerkaeuferin) {
+    utter.voice = deVoice;
+}
 
     if (line.startsWith("Kunde:")) {
         utter.pitch = 0.8;
