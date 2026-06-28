@@ -403,15 +403,12 @@ audioPaused = false;
 renderSection(key);
 const voices = window.speechSynthesis.getVoices();
 const maleVoice =
-    voices.find(v => v.name.includes("Stefan")) ||
-    voices.find(v => v.name.includes("Mark")) ||
-    voices.find(v => v.name.includes("David")) ||
+    voices.find(v => v.lang === "de-DE" && v.name.includes("Stefan")) ||
     voices.find(v => v.lang.startsWith("de"));
 
 const femaleVoice =
-    voices.find(v => v.name.includes("Katja")) ||
-    voices.find(v => v.name.includes("Hedda")) ||
-    voices.find(v => v.name.includes("Anna")) ||
+    voices.find(v => v.lang === "de-DE" && v.name.includes("Katja")) ||
+    voices.find(v => v.lang === "de-DE" && v.name.includes("Hedda")) ||
     voices.find(v => v.lang.startsWith("de"));
  
 
@@ -428,7 +425,8 @@ function speakNext() {
 
     const line = lines[index].trim();
     const isKunde = line.startsWith("Kunde:");
-    const isVerkaeuferin = line.startsWith("Verkäuferin:");
+    const isVerkaeuferin =
+      line.startsWith("Verkäuferin:");
 
     const cleanText = line
       .replace("Kunde:", "")
