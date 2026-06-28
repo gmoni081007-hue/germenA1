@@ -401,7 +401,7 @@ st.playing = true;
 st.played++;
 audioPaused = false;
 renderSection(key);
-
+const voices = window.speechSynthesis.getVoices();
 const maleVoice =
     voices.find(v => v.name.includes("Stefan")) ||
     voices.find(v => v.name.includes("Mark")) ||
@@ -436,9 +436,7 @@ function speakNext() {
       .trim();
     const utter = new SpeechSynthesisUtterance(cleanText);
   utter.lang = "de-DE";
-  const isKunde = line.startsWith("Kunde:");
-const isVerkaeuferin = line.startsWith("Verkäuferin:");
-
+ 
 if (isKunde) {
     utter.voice = maleVoice;
     utter.pitch = 0.2;
@@ -474,11 +472,11 @@ function togglePause() {
     if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
         audioPaused = false;
-      renderSection(key);
+    
     } else {
         window.speechSynthesis.pause();
         audioPaused = true;
-      renderSection(key);
+     
     }
 
     renderSection(currentPanel === "hoeren1" ? "h1" :
