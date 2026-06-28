@@ -388,7 +388,7 @@ function getAudioState(key) {
   if (!audioState[key][idx]) audioState[key][idx] = { played: 0, playing: false };
   return audioState[key][idx];
 }
-
+audioPaused = false;
 function playTTS(key, maxPlays) {
   const st = getAudioState(key);
 if (st.playing || st.played >= maxPlays) return;
@@ -475,7 +475,21 @@ if (isVerkaeuferin) {
 window.speechSynthesis.cancel();
 speakNext();
 }
+function togglePause() {
+    if (!window.speechSynthesis.speaking) return;
 
+    if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        audioPaused = false;
+    } else {
+        window.speechSynthesis.pause();
+        audioPaused = true;
+    }
+
+    renderSection(currentPanel === "hoeren1" ? "h1" :
+                  currentPanel === "hoeren2" ? "h2" :
+                  currentPanel === "hoeren3" ? "h3" : "");
+}
 function audioPlayerHtml(key, maxPlays) {
   const st = getAudioState(key);
   const remaining = maxPlays - st.played;
@@ -487,7 +501,13 @@ function audioPlayerHtml(key, maxPlays) {
 
   return `<div class="audio-player">
     <div class="audio-controls">
-      <button class="play-btn" onclick="playTTS('${key}', ${maxPlays})" ${canPlay ? "" : "disabled"}>${btnLabel}</button>
+      <button class="play-btn" onclick="playTTS('${key}', ${maxPlays})" 
+      <button class="play-btn"
+    onclick="togglePause()"
+    ${!st.playing ? "disabled" : ""}>
+    ${audioPaused ? "▶ Resume" : "⏸ Pause"}
+</button>
+${canPlay ? "" : "disabled"}>${btnLabel}</button>
       <span class="play-count">${playsLabel}</span>
       <span class="audio-status">${statusText}</span>
     </div>
